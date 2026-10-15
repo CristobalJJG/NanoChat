@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS app_users (
     bio VARCHAR(160) NOT NULL DEFAULT '',
     photo_media_id UUID,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_anonymous BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CHECK (
@@ -24,6 +25,17 @@ CREATE TABLE IF NOT EXISTS app_users (
 
 ALTER TABLE app_users
     ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE app_users
+    ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN;
+
+UPDATE app_users
+SET is_anonymous = (email IS NULL)
+WHERE is_anonymous IS NULL;
+
+ALTER TABLE app_users
+    ALTER COLUMN is_anonymous SET DEFAULT TRUE,
+    ALTER COLUMN is_anonymous SET NOT NULL;
 
 CREATE TABLE IF NOT EXISTS roles (
     name TEXT PRIMARY KEY,

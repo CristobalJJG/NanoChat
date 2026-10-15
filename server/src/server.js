@@ -42,12 +42,13 @@ app.use(express.json({ limit: '256kb' }));
 
 async function ensureUser(request) {
     const result = await pool.query(
-        `INSERT INTO app_users (firebase_uid, email)
-         VALUES ($1, $2)
+        `INSERT INTO app_users (firebase_uid, email, is_anonymous)
+         VALUES ($1, $2, $3)
          ON CONFLICT (firebase_uid) DO UPDATE
-         SET email = COALESCE(EXCLUDED.email, app_users.email)
+         SET email = COALESCE(EXCLUDED.email, app_users.email),
+             is_anonymous = EXCLUDED.is_anonymous
          RETURNING firebase_uid, is_active`,
-        [request.authUser.uid, request.authUser.email]
+        [request.authUser.uid, request.authUser.email, request.authUser.isAnonymous]
     );
     const user = result.rows[0];
     await pool.query(
@@ -223,9 +224,10 @@ app.get('/api/admin/users', requireFirebaseAuth, withAdmin(async (request, respo
                     WHERE ur.firebase_uid = u.firebase_uid AND ur.role_name = 'admin'
                 ) THEN 'admin' ELSE 'user' END AS role
          FROM app_users u
-         WHERE $1 = '' OR COALESCE(u.username, '') ILIKE $2
+         WHERE u.is_anonymous = FALSE
+           AND ($1 = '' OR COALESCE(u.username, '') ILIKE $2
             OR COALESCE(u.display_name, '') ILIKE $2
-            OR COALESCE(u.email, '') ILIKE $2
+            OR COALESCE(u.email, '') ILIKE $2)
          ORDER BY u.created_at DESC
          LIMIT 100`,
         [search, `%${search}%`]
