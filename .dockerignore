@@ -1,0 +1,11 @@
+.git
+.angular
+node_modules
+server/node_modules
+dist
+.env
+.env.*
+!.env.example
+src/environments/firebase-config.generated.ts
+coverage
+npm-debug.log
