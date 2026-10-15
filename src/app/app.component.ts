@@ -158,6 +158,10 @@ export class AppComponent implements AfterViewInit {
     }
 
     selectConversation(conversation: ChatConversation): void {
+      if (this.currentUser()?.isAnonymous && conversation.kind === 'direct') {
+        this.error.set('Crea una cuenta para acceder a conversaciones directas.');
+        return;
+      }
       this.selectedConversationId.set(conversation.id);
       this.chat.selectConversation(conversation.id);
       this.mobileConversationsOpen.set(false);
@@ -168,6 +172,7 @@ export class AppComponent implements AfterViewInit {
     }
 
     onUserSearch(value: string): void {
+      if (this.currentUser()?.isAnonymous) return;
       this.userSearch.set(value);
       this.searchResults.set([]);
       if (this.searchTimeout) clearTimeout(this.searchTimeout);
@@ -196,6 +201,10 @@ export class AppComponent implements AfterViewInit {
     }
 
     async startDirectConversation(username: string): Promise<void> {
+      if (this.currentUser()?.isAnonymous) {
+        this.error.set('Crea una cuenta para iniciar conversaciones directas.');
+        return;
+      }
       this.error.set('');
       try {
         const conversation = await this.chat.openDirectConversation(username);

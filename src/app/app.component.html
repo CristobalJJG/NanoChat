@@ -69,29 +69,36 @@
           </div>
         </header>
         <div class="sidebar-section-label"><span>CONVERSACIONES</span><span>{{ conversations().length }}</span></div>
-        <label class="user-search">
-          <span class="visually-hidden">Buscar usuarios</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3" /><path d="m15.5 15.5 4.2 4.2" /></svg>
-          <input type="search" placeholder="Buscar por username" autocomplete="off" [value]="userSearch()" (input)="onUserSearch($any($event.target).value)" />
-        </label>
-        @if (searchingUsers()) {
-          <p class="search-status">Buscando...</p>
-        } @else if (userSearch().trim().length >= 2 && searchResults().length === 0) {
-          <p class="search-status">No se encontraron usuarios.</p>
-        }
-        @if (searchResults().length) {
-          <div class="user-search-results" aria-label="Resultados de búsqueda">
-            @for (user of searchResults(); track user.username) {
-              <button class="user-result" type="button" (click)="startDirectConversation(user.username)">
-                @if (user.photoURL) {
-                  <img class="conversation-avatar" [src]="user.photoURL" [alt]="''" />
-                } @else {
-                  <span class="conversation-avatar" aria-hidden="true">{{ user.displayName.charAt(0).toUpperCase() }}</span>
-                }
-                <span class="conversation-copy"><strong>{{ user.displayName }}</strong><small>@{{ user.username }}</small></span>
-              </button>
-            }
+        @if (currentUser()?.isAnonymous) {
+          <div class="guest-direct-notice">
+            <p>Crea una cuenta para buscar usuarios y hablar en privado.</p>
+            <button class="guest-direct-action" type="button" (click)="handleSessionAction()">Crear cuenta</button>
           </div>
+        } @else {
+          <label class="user-search">
+            <span class="visually-hidden">Buscar usuarios</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3" /><path d="m15.5 15.5 4.2 4.2" /></svg>
+            <input type="search" placeholder="Buscar por username" autocomplete="off" [value]="userSearch()" (input)="onUserSearch($any($event.target).value)" />
+          </label>
+          @if (searchingUsers()) {
+            <p class="search-status">Buscando...</p>
+          } @else if (userSearch().trim().length >= 2 && searchResults().length === 0) {
+            <p class="search-status">No se encontraron usuarios.</p>
+          }
+          @if (searchResults().length) {
+            <div class="user-search-results" aria-label="Resultados de búsqueda">
+              @for (user of searchResults(); track user.username) {
+                <button class="user-result" type="button" (click)="startDirectConversation(user.username)">
+                  @if (user.photoURL) {
+                    <img class="conversation-avatar" [src]="user.photoURL" [alt]="''" />
+                  } @else {
+                    <span class="conversation-avatar" aria-hidden="true">{{ user.displayName.charAt(0).toUpperCase() }}</span>
+                  }
+                  <span class="conversation-copy"><strong>{{ user.displayName }}</strong><small>@{{ user.username }}</small></span>
+                </button>
+              }
+            </div>
+          }
         }
         <div class="sidebar-section-label sidebar-section-conversations"><span>RECIENTES</span></div>
         @for (conversation of conversations(); track conversation.id) {

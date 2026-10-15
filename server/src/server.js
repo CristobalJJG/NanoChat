@@ -94,7 +94,7 @@ function withAdmin(handler) {
     });
 }
 
-async function canAccessConversation(conversationId, uid) {
+async function canAccessConversation(conversationId, uid, isAnonymous = false) {
     const result = await pool.query(
         `SELECT kind, participant_one_uid, participant_two_uid
          FROM conversations WHERE id = $1`,
@@ -103,8 +103,10 @@ async function canAccessConversation(conversationId, uid) {
     const conversation = result.rows[0];
     return Boolean(conversation && (
         conversation.kind === 'general'
-        || conversation.participant_one_uid === uid
-        || conversation.participant_two_uid === uid
+        || (!isAnonymous && (
+            conversation.participant_one_uid === uid
+            || conversation.participant_two_uid === uid
+        ))
     ));
 }
 
@@ -375,6 +377,9 @@ app.patch('/api/admin/users/:uid', requireFirebaseAuth, withAdmin(async (request
 }));
 
 app.get('/api/users', requireFirebaseAuth, withUser(async (request, response) => {
+    if (request.authUser.isAnonymous) {
+        return response.status(403).json({ error: 'Crea una cuenta para buscar usuarios e iniciar conversaciones directas.' });
+    }
     const search = String(request.query.search ?? '').trim().replace(/^@/, '');
     if (search.length < 2) return response.json([]);
 
@@ -416,10 +421,12 @@ app.get('/api/conversations', requireFirebaseAuth, withUser(async (request, resp
              ORDER BY created_at DESC LIMIT 1
          ) latest ON TRUE
          WHERE c.kind = 'general'
-            OR c.participant_one_uid = $1
-            OR c.participant_two_uid = $1
+            OR ($2 = FALSE AND (
+                c.participant_one_uid = $1
+                OR c.participant_two_uid = $1
+            ))
          ORDER BY (c.kind = 'general') DESC, latest.created_at DESC NULLS LAST`,
-        [request.authUser.uid]
+        [request.authUser.uid, request.authUser.isAnonymous]
     );
     response.json(result.rows.map(row => ({
         id: row.id,
@@ -433,6 +440,9 @@ app.get('/api/conversations', requireFirebaseAuth, withUser(async (request, resp
 }));
 
 app.post('/api/conversations/direct', requireFirebaseAuth, withUser(async (request, response) => {
+    if (request.authUser.isAnonymous) {
+        return response.status(403).json({ error: 'Crea una cuenta para iniciar conversaciones directas.' });
+    }
     const username = String(request.body?.username ?? '').trim().replace(/^@/, '').toLowerCase();
     if (!/^[a-z0-9_]{3,20}$/.test(username)) {
         return response.status(400).json({ error: 'Introduce un username válido.' });
@@ -486,7 +496,7 @@ app.get('/api/messages', requireFirebaseAuth, withUser(async (request, response)
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(conversationId)) {
         return response.status(400).json({ error: 'La conversación no es válida.' });
     }
-    if (!await canAccessConversation(conversationId, request.authUser.uid)) {
+    if (!await canAccessConversation(conversationId, request.authUser.uid, request.authUser.isAnonymous)) {
         return response.status(404).json({ error: 'No se encontró esa conversación.' });
     }
 
@@ -624,6 +634,10 @@ app.post('/api/messages', requireFirebaseAuth, withUser(async (request, response
             && conversation.participant_two_uid !== request.authUser.uid)) {
             await client.query('ROLLBACK');
             return response.status(404).json({ error: 'No se encontró esa conversación.' });
+        }
+        if (request.authUser.isAnonymous && conversation.kind === 'direct') {
+            await client.query('ROLLBACK');
+            return response.status(403).json({ error: 'Crea una cuenta para enviar mensajes directos.' });
         }
         if (mediaIds.length) {
             const ownedMedia = await client.query(
