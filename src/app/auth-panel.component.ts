@@ -3,6 +3,7 @@ import { Component, input, output } from '@angular/core';
 @Component({
     selector: 'app-auth-panel',
     standalone: true,
+    styleUrl: './auth-panel.component.css',
     template: `
       <div class="auth-panel" [class.profile-panel]="profileSetup()">
         @if (showBack()) {
@@ -103,8 +104,7 @@ import { Component, input, output } from '@angular/core';
           }
         }
       </div>
-    `,
-    styles: [':host { display: contents; }']
+    `
 })
 export class AuthPanelComponent {
     readonly profileSetup = input(false);
