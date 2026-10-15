@@ -77,6 +77,7 @@ export interface ChatConversation {
     photoURL?: string | null;
     lastMessage: string;
     lastMessageAt?: string | null;
+    unreadCount: number;
 }
 
 export interface ChatUserResult {

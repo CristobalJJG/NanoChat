@@ -150,6 +150,29 @@ CREATE INDEX IF NOT EXISTS messages_conversation_created_at_idx ON messages (
     created_at DESC
 );
 
+CREATE TABLE IF NOT EXISTS conversation_read_states (
+    conversation_id UUID NOT NULL REFERENCES conversations (id) ON DELETE CASCADE,
+    user_uid TEXT NOT NULL REFERENCES app_users (firebase_uid) ON DELETE CASCADE,
+    last_read_message_id UUID REFERENCES messages (id) ON DELETE SET NULL,
+    PRIMARY KEY (conversation_id, user_uid)
+);
+
+INSERT INTO conversation_read_states (conversation_id, user_uid, last_read_message_id)
+SELECT c.id, participant.user_uid, latest.id
+FROM conversations c
+CROSS JOIN LATERAL (
+    VALUES (c.participant_one_uid), (c.participant_two_uid)
+) AS participant (user_uid)
+JOIN LATERAL (
+    SELECT id
+    FROM messages
+    WHERE conversation_id = c.id
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+) latest ON TRUE
+WHERE c.kind = 'direct'
+ON CONFLICT (conversation_id, user_uid) DO NOTHING;
+
 CREATE INDEX IF NOT EXISTS media_owner_uid_idx ON media (owner_uid);
 
 CREATE INDEX IF NOT EXISTS message_attachments_media_id_idx ON message_attachments (media_id);

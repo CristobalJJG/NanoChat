@@ -155,7 +155,7 @@ export class AppComponent implements AfterViewInit {
 
     activeConversation(): ChatConversation {
       return this.conversations().find(conversation => conversation.id === this.selectedConversationId())
-          ?? { id: GENERAL_CONVERSATION_ID, kind: 'general', title: 'General', lastMessage: '' };
+          ?? { id: GENERAL_CONVERSATION_ID, kind: 'general', title: 'General', lastMessage: '', unreadCount: 0 };
     }
 
     selectConversation(conversation: ChatConversation): void {

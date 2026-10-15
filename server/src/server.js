@@ -407,7 +407,8 @@ app.get('/api/conversations', requireFirebaseAuth, withUser(async (request, resp
                 CASE WHEN c.kind = 'direct' AND other.photo_media_id IS NOT NULL
                      THEN '/api/media/' || other.photo_media_id::text END AS photo_url,
                 latest.text AS last_message,
-                latest.created_at AS last_message_at
+                latest.created_at AS last_message_at,
+                COALESCE(unread.count, 0)::int AS unread_count
          FROM conversations c
          LEFT JOIN app_users other
            ON c.kind = 'direct'
@@ -418,8 +419,25 @@ app.get('/api/conversations', requireFirebaseAuth, withUser(async (request, resp
          LEFT JOIN LATERAL (
              SELECT text, created_at FROM messages
              WHERE conversation_id = c.id
-             ORDER BY created_at DESC LIMIT 1
+             ORDER BY created_at DESC, id DESC LIMIT 1
          ) latest ON TRUE
+         LEFT JOIN conversation_read_states read_state
+           ON read_state.conversation_id = c.id
+          AND read_state.user_uid = $1
+         LEFT JOIN messages read_message
+           ON read_message.id = read_state.last_read_message_id
+         LEFT JOIN LATERAL (
+             SELECT COUNT(*) AS count
+             FROM messages unread_message
+             WHERE c.kind = 'direct'
+               AND unread_message.conversation_id = c.id
+               AND unread_message.sender_uid <> $1
+               AND (
+                   read_state.last_read_message_id IS NULL
+                   OR (unread_message.created_at, unread_message.id)
+                      > (read_message.created_at, read_message.id)
+               )
+         ) unread ON TRUE
          WHERE c.kind = 'general'
             OR ($2 = FALSE AND (
                 c.participant_one_uid = $1
@@ -435,7 +453,8 @@ app.get('/api/conversations', requireFirebaseAuth, withUser(async (request, resp
         username: row.username,
         photoURL: row.photo_url ?? null,
         lastMessage: row.last_message ?? '',
-        lastMessageAt: row.last_message_at
+        lastMessageAt: row.last_message_at,
+        unreadCount: row.unread_count
     })));
 }));
 
@@ -485,7 +504,8 @@ app.post('/api/conversations/direct', requireFirebaseAuth, withUser(async (reque
         username: target.username,
         photoURL: target.photo_media_id ? `/api/media/${target.photo_media_id}` : null,
         lastMessage: '',
-        lastMessageAt: null
+        lastMessageAt: null,
+        unreadCount: 0
     });
 }));
 
@@ -518,10 +538,34 @@ app.get('/api/messages', requireFirebaseAuth, withUser(async (request, response)
          FROM messages m
          JOIN app_users u ON u.firebase_uid = m.sender_uid
             WHERE m.conversation_id = $1
-         ORDER BY m.created_at DESC
+         ORDER BY m.created_at DESC, m.id DESC
          LIMIT 100`
            , [conversationId]
     );
+    if (result.rowCount) {
+        await pool.query(
+            `INSERT INTO conversation_read_states (conversation_id, user_uid, last_read_message_id)
+             SELECT $1, $2, m.id
+             FROM messages m
+             JOIN conversations c ON c.id = m.conversation_id AND c.kind = 'direct'
+             WHERE m.conversation_id = $1
+             ORDER BY m.created_at DESC, m.id DESC
+             LIMIT 1
+             ON CONFLICT (conversation_id, user_uid) DO UPDATE
+             SET last_read_message_id = EXCLUDED.last_read_message_id
+             WHERE conversation_read_states.last_read_message_id IS NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM messages new_message
+                    JOIN messages old_message
+                      ON old_message.id = conversation_read_states.last_read_message_id
+                    WHERE new_message.id = EXCLUDED.last_read_message_id
+                      AND (new_message.created_at, new_message.id)
+                          > (old_message.created_at, old_message.id)
+                )`,
+            [conversationId, request.authUser.uid]
+        );
+    }
     response.json(result.rows.reverse().map(row => ({
         id: row.id,
         senderId: row.sender_uid,

@@ -109,7 +109,19 @@
               <span class="conversation-avatar" aria-hidden="true">{{ conversation.title.charAt(0).toUpperCase() }}</span>
             }
             <span class="conversation-copy">
-              <span class="conversation-title"><strong>{{ conversation.title }}</strong><span>{{ conversation.kind === 'direct' ? '@' + conversation.username : messages().length }}</span></span>
+              <span class="conversation-title">
+                <strong>{{ conversation.title }}</strong>
+                @if (conversation.kind === 'direct') {
+                  <span class="conversation-title-meta">@{{ conversation.username }}</span>
+                  @if (conversation.unreadCount > 0 && conversation.id !== selectedConversationId()) {
+                    <span class="conversation-unread-badge" [attr.aria-label]="conversation.unreadCount + ' mensajes sin leer'">
+                      {{ conversation.unreadCount > 99 ? '99+' : conversation.unreadCount }}
+                    </span>
+                  }
+                } @else {
+                  <span>{{ messages().length }}</span>
+                }
+              </span>
               <span class="conversation-preview">{{ conversation.lastMessage || (conversation.kind === 'general' ? 'La conversación comienza aquí' : 'Inicia la conversación') }}</span>
             </span>
             @if (conversation.kind === 'general') {

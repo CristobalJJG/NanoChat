@@ -47,6 +47,8 @@
     .conversation-title { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .conversation-title strong { overflow: hidden; color: #f8fafc; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
     .conversation-title span { color: #94a3b8; font-size: 10px; }
+    .conversation-title .conversation-title-meta { overflow: hidden; margin-left: auto; text-overflow: ellipsis; white-space: nowrap; }
+    .conversation-title .conversation-unread-badge { min-width: 18px; height: 18px; display: grid; flex: 0 0 auto; place-items: center; padding: 0 5px; color: #0a0a0c; border-radius: 999px; background: #7bd0ff; font-size: 10px; font-weight: 700; }
     .conversation-preview { overflow: hidden; color: #64748b; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
     .conversation-live, .status-dot, .live-indicator { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: #475569; }
     .conversation-live, .status-dot-online, .live-indicator { background: #38bdf8; box-shadow: 0 0 8px #38bdf840; }
