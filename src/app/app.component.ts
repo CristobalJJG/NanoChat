@@ -1,140 +1,60 @@
 import { DatePipe } from '@angular/common';
-import { AfterViewInit, Component, DestroyRef, ElementRef, effect, inject, QueryList, signal, ViewChild, ViewChildren } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, ElementRef, effect, inject, QueryList, signal, ViewChild, ViewChildren, ViewEncapsulation } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { User } from '@angular/fire/auth';
 import { AdminUser, ChatConversation, ChatMessage, ChatService, ChatUserResult, GENERAL_CONVERSATION_ID, MediaAttachment, UserProfile } from './chat.service';
+import { AdminPanelComponent } from './admin-panel.component';
+import { AuthPanelComponent } from './auth-panel.component';
 
 @Component({
     selector: 'app-root',
     standalone: true,
-    imports: [DatePipe],
+    imports: [DatePipe, AdminPanelComponent, AuthPanelComponent],
+    encapsulation: ViewEncapsulation.None,
     template: `
     <main class="workspace">
       @if (authLoading()) {
         <div class="auth-loading" role="status"><span class="status-dot status-dot-online"></span> Cargando sesión...</div>
       } @else if (!currentUser() || accountFlow()) {
         <section class="auth-screen" aria-labelledby="auth-title">
-          <div class="auth-panel">
-            @if (currentUser()) {
-              <button class="auth-back" type="button" (click)="closeAccountFlow()">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 18-6-6 6-6M8 12h12" /></svg>
-                Volver al chat
-              </button>
-            }
-            <a class="auth-brand" href="#conversation" aria-label="Echo">
-              <img src="https://lh3.googleusercontent.com/aida/AEtjO1WAQK8bUEtvgexkHFXyNxEmM0UarEUM1pbe5SDuYEJcKGHlzvBu5Goym3fpZi32TXFkNKEJDcJLCRpr9AH75YfUH0tCwmlXwMw6Xm18BsikXoazbb8VpB08GBmxDrQrGADuRqH0CIFakl90NIxjk7h8etQQ9pB4Ped2zy6rjLqFxEtiiPVldI8pcgG6pxbBxr1wfgxwJ8oDA03qIvuTlTleZByI7V1_HJy5pTDUgXo3fYLRdLtoTJ7r5bY" alt="" />
-              <span>PULSE / ECHO</span>
-            </a>
-            <p class="eyebrow">MENSAJERÍA EN TIEMPO REAL</p>
-            <h1 id="auth-title">{{ authMode() === 'register' ? 'Crea tu cuenta' : 'Inicia sesión' }}</h1>
-            <p class="auth-description">{{ authMode() === 'register' ? 'Regístrate para conservar tu acceso.' : 'Accede a tus conversaciones.' }}</p>
-
-            <form class="auth-form" (submit)="submitAuth($event)">
-              <label class="auth-field">
-                <span>Correo electrónico</span>
-                <input
-                  type="email"
-                  autocomplete="email"
-                  name="email"
-                  placeholder="nombre@correo.com"
-                  required
-                  [value]="authEmail()"
-                  (input)="authEmail.set($any($event.target).value)"
-                />
-              </label>
-              <label class="auth-field">
-                <span>Contraseña</span>
-                <input
-                  type="password"
-                  [attr.autocomplete]="authMode() === 'register' ? 'new-password' : 'current-password'"
-                  name="password"
-                  placeholder="Mínimo 6 caracteres"
-                  minlength="6"
-                  required
-                  [value]="authPassword()"
-                  (input)="authPassword.set($any($event.target).value)"
-                />
-              </label>
-              @if (authError()) {
-                <p class="auth-error" role="alert">{{ authError() }}</p>
-              }
-              <button class="auth-submit" type="submit" [disabled]="authBusy()">
-                {{ authBusy() ? 'Procesando...' : authMode() === 'register' ? 'Crear cuenta' : 'Iniciar sesión' }}
-              </button>
-            </form>
-
-            <div class="auth-switch">
-              <span>{{ authMode() === 'register' ? '¿Ya tienes cuenta?' : '¿Primera vez aquí?' }}</span>
-              <button type="button" (click)="switchAuthMode()">{{ authMode() === 'register' ? 'Inicia sesión' : 'Regístrate' }}</button>
-            </div>
-
-            @if (!currentUser()) {
-              <div class="auth-divider"><span>O</span></div>
-              <button class="guest-submit" type="button" [disabled]="authBusy()" (click)="continueAsGuest()">Continuar como invitado</button>
-            } @else {
-              <p class="auth-note">Tu cuenta conservará esta sesión y sus mensajes.</p>
-            }
-          </div>
+          <app-auth-panel
+            [showBack]="!!currentUser()"
+            [hasUser]="!!currentUser()"
+            [authMode]="authMode()"
+            [authEmail]="authEmail()"
+            [authPassword]="authPassword()"
+            [authBusy]="authBusy()"
+            [authError]="authError()"
+            (authEmailChange)="authEmail.set($event)"
+            (authPasswordChange)="authPassword.set($event)"
+            (authSubmit)="submitAuth($event)"
+            (switchMode)="switchAuthMode()"
+            (continueAsGuest)="continueAsGuest()"
+            (close)="closeAccountFlow()"
+          />
         </section>
       } @else if (currentUser()?.isAnonymous === false && !profile()) {
         <section class="auth-screen profile-screen" aria-labelledby="profile-title">
-          <div class="auth-panel profile-panel">
-            <a class="auth-brand" href="#conversation" aria-label="Echo">
-              <img src="https://lh3.googleusercontent.com/aida/AEtjO1WAQK8bUEJcKGHlzvBu5Goym3fpZi32TXFkNKEJDcJLCRpr9AH75YfUH0tCwmlXwMw6Xm18BsikXoazbb8VpB08GBmxDrQrGADuRqH0CIFakl90NIxjk7h8etQQ9pB4Ped2zy6rjLqFxEtiiPVldI8pcgG6pxbBxr1wfgxwJ8oDA03qIvuTlTleZByI7V1_HJy5pTDUgXo3fYLRdLtoTJ7r5bY" alt="" />
-              <span>PULSE / ECHO</span>
-            </a>
-            <p class="eyebrow">CONFIGURACIÓN DE CUENTA</p>
-            <h1 id="profile-title">Completa tu perfil</h1>
-            <p class="auth-description">Estos datos aparecerán en tu identidad de chat. Tu edad se mantiene privada.</p>
-
-            <form class="profile-form" (submit)="submitProfile($event)">
-              <div class="profile-photo-row">
-                @if (photoPreview()) {
-                  <img class="profile-photo-preview" [src]="photoPreview()" alt="Vista previa de la foto de perfil" />
-                } @else {
-                  <span class="profile-photo-placeholder" aria-hidden="true">{{ userInitial() }}</span>
-                }
-                <label class="photo-picker">
-                  <input class="photo-file-input" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Foto de perfil" (change)="selectProfilePhoto($event)" />
-                  <span class="eyebrow">FOTO DE PERFIL</span>
-                  <strong>{{ photoFile() ? photoFile()?.name : 'Elige una imagen' }}</strong>
-                  <small>JPG, PNG o WebP · máximo 5 MB</small>
-                </label>
-              </div>
-
-              <label class="auth-field">
-                <span>Nombre de usuario</span>
-                <input type="text" name="username" autocomplete="username" placeholder="ej. maria_27" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" required [value]="profileUsername()" (input)="profileUsername.set($any($event.target).value)" />
-                <small class="field-hint">Único; 3-20 letras, números o guion bajo.</small>
-              </label>
-              <div class="profile-name-row">
-                <label class="auth-field">
-                  <span>Nombres</span>
-                  <input type="text" name="firstName" autocomplete="given-name" maxlength="60" required [value]="profileFirstName()" (input)="profileFirstName.set($any($event.target).value)" />
-                </label>
-                <label class="auth-field">
-                  <span>Apellidos</span>
-                  <input type="text" name="lastName" autocomplete="family-name" maxlength="60" required [value]="profileLastName()" (input)="profileLastName.set($any($event.target).value)" />
-                </label>
-              </div>
-              <label class="auth-field age-field">
-                <span>Edad</span>
-                <input type="number" name="age" min="1" max="120" step="1" inputmode="numeric" required [value]="profileAge()" (input)="profileAge.set($any($event.target).value)" />
-              </label>
-              <label class="auth-field">
-                <span>Acerca de ti <small>(opcional)</small></span>
-                <textarea name="bio" maxlength="160" rows="3" placeholder="Una breve presentación" [value]="profileBio()" (input)="profileBio.set($any($event.target).value)"></textarea>
-                <small class="field-hint field-count">{{ profileBio().length }}/160</small>
-              </label>
-              @if (profileError()) {
-                <p class="auth-error" role="alert">{{ profileError() }}</p>
-              }
-              <button class="auth-submit" type="submit" [disabled]="profileBusy()">
-                {{ profileBusy() ? 'Guardando perfil...' : 'Guardar y entrar al chat' }}
-              </button>
-            </form>
-            <p class="auth-note">El nombre, username y foto se comparten en el chat. Nombres completos y edad solo son visibles para ti.</p>
-          </div>
+          <app-auth-panel
+            [profileSetup]="true"
+            [profileUsername]="profileUsername()"
+            [profileFirstName]="profileFirstName()"
+            [profileLastName]="profileLastName()"
+            [profileAge]="profileAge()"
+            [profileBio]="profileBio()"
+            [profileError]="profileError()"
+            [profileBusy]="profileBusy()"
+            [photoPreview]="photoPreview()"
+            [photoFileName]="photoFile()?.name ?? null"
+            [userInitial]="userInitial()"
+            (profileUsernameChange)="profileUsername.set($event)"
+            (profileFirstNameChange)="profileFirstName.set($event)"
+            (profileLastNameChange)="profileLastName.set($event)"
+            (profileAgeChange)="profileAge.set($event)"
+            (profileBioChange)="profileBio.set($event)"
+            (profileSubmit)="submitProfile($event)"
+            (photoSelected)="selectProfilePhoto($event)"
+          />
         </section>
       } @else {
       <aside class="utility-rail" aria-label="Navegación principal">
@@ -343,52 +263,11 @@ import { AdminUser, ChatConversation, ChatMessage, ChatService, ChatUserResult, 
       </section>
 
       @if (adminOpen()) {
-        <div class="admin-overlay" role="presentation">
-          <button class="admin-backdrop" type="button" aria-label="Cerrar administración" (click)="closeAdminPanel()"></button>
-          <section class="admin-panel" role="dialog" aria-modal="true" aria-labelledby="admin-title">
-            <header class="admin-header">
-              <div><p class="eyebrow">CONTROL DE ACCESO</p><h2 id="admin-title">Usuarios</h2></div>
-              <button class="admin-close" type="button" aria-label="Cerrar administración" (click)="closeAdminPanel()">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
-              </button>
-            </header>
-            @if (adminError()) { <p class="error-message" role="alert">{{ adminError() }}</p> }
-            @if (adminNotice()) { <p class="success-message" role="status">{{ adminNotice() }}</p> }
-            <label class="admin-search"><span class="visually-hidden">Buscar usuarios</span><input type="search" placeholder="Email, username o nombre" [value]="adminSearch()" (input)="adminSearch.set($any($event.target).value)" /></label>
-            @if (adminUsersLoading()) {
-              <p class="admin-empty">Cargando usuarios...</p>
-            } @else if (!filteredAdminUsers().length) {
-              <p class="admin-empty">No hay usuarios que coincidan.</p>
-            } @else {
-              <div class="admin-user-list">
-                @for (user of filteredAdminUsers(); track user.uid) {
-                  <article class="admin-user-row">
-                    <header class="admin-user-heading">
-                      <div class="admin-user-identity">
-                        <strong>{{ user.displayName || user.email || user.uid }}</strong>
-                        <span>{{ user.username ? '@' + user.username : 'Sin username' }} · {{ user.email || 'Sin correo' }}</span>
-                      </div>
-                      <button class="admin-edit-toggle" type="button" (click)="toggleAdminEdit(user)">{{ editingAdminUid() === user.uid ? 'Cancelar' : 'Editar perfil' }}</button>
-                    </header>
-                    <div class="admin-user-controls">
-                      <label><span>Rol</span><select [value]="user.role" [disabled]="adminSavingUid() === user.uid" (change)="changeAdminRole(user, $any($event.target).value)"><option value="user">Usuario</option><option value="admin">Administrador</option></select></label>
-                      <label class="admin-active-toggle"><input type="checkbox" [checked]="user.isActive" [disabled]="adminSavingUid() === user.uid" (change)="changeAdminActive(user, $any($event.target).checked)" /><span>{{ user.isActive ? 'Activo' : 'Bloqueado' }}</span></label>
-                    </div>
-                    @if (editingAdminUid() === user.uid) {
-                      <form class="admin-profile-form" (submit)="saveAdminProfile($event, user)">
-                        <label><span>Username</span><input name="username" minlength="3" maxlength="20" pattern="[a-z0-9_]{3,20}" required [value]="adminEditUsername()" (input)="adminEditUsername.set($any($event.target).value)" /></label>
-                        <label><span>Nombres</span><input name="firstName" maxlength="60" required [value]="adminEditFirstName()" (input)="adminEditFirstName.set($any($event.target).value)" /></label>
-                        <label><span>Apellidos</span><input name="lastName" maxlength="60" required [value]="adminEditLastName()" (input)="adminEditLastName.set($any($event.target).value)" /></label>
-                        <label class="admin-bio-field"><span>Biografía</span><textarea name="bio" maxlength="160" rows="2" [value]="adminEditBio()" (input)="adminEditBio.set($any($event.target).value)"></textarea></label>
-                        <button class="admin-save-profile" type="submit" [disabled]="adminSavingUid() === user.uid">{{ adminSavingUid() === user.uid ? 'Guardando...' : 'Guardar perfil' }}</button>
-                      </form>
-                    }
-                  </article>
-                }
-              </div>
-            }
-          </section>
-        </div>
+        <app-admin-panel
+          [currentUserId]="currentUser()?.uid ?? null"
+          (close)="closeAdminPanel()"
+          (profileUpdated)="onAdminProfileUpdated($event)"
+        />
       }
 
       <aside class="details-panel" aria-label="Detalles de la conversación">
@@ -422,7 +301,7 @@ import { AdminUser, ChatConversation, ChatMessage, ChatService, ChatUserResult, 
     </main>
   `,
     styles: [`
-    :host { display: block; min-height: 100dvh; color-scheme: dark; }
+    app-root { display: block; min-height: 100dvh; color-scheme: dark; }
     .workspace { display: grid; grid-template-columns: 72px 320px minmax(0, 1fr); width: 100%; height: 100dvh; overflow: hidden; background: #0a0a0c; color: #f8fafc; font-family: var(--font-geist); }
     .auth-screen { grid-column: 1 / -1; display: grid; min-height: 100dvh; place-items: center; padding: 24px; background-color: #0a0a0c; background-image: linear-gradient(#ffffff06 1px, transparent 1px), linear-gradient(90deg, #ffffff06 1px, transparent 1px); background-size: 48px 48px; }
     .auth-panel { width: min(100%, 420px); padding: 32px; background: #121316; border: 1px solid #2c2e35; border-radius: 4px; box-shadow: inset 0 1px #ffffff08; }
@@ -561,10 +440,10 @@ import { AdminUser, ChatConversation, ChatMessage, ChatService, ChatUserResult, 
     .remove-attachment:hover:not(:disabled) { color: #f8fafc; background: #343538; }
     .remove-attachment svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.7; }
     input::placeholder { color: #64748b; }
-    button { width: 38px; height: 38px; display: grid; flex: 0 0 auto; place-items: center; color: #f8fafc; border: 1px solid transparent; border-radius: 4px; background: #4f46e5; cursor: pointer; transition: background .16s ease, border-color .16s ease, opacity .16s ease; }
-    button:hover:not(:disabled) { border-color: #ffffff26; background: #6366f1; }
-    button:disabled { cursor: not-allowed; opacity: .45; }
-    button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+    .workspace button { width: 38px; height: 38px; display: grid; flex: 0 0 auto; place-items: center; color: #f8fafc; border: 1px solid transparent; border-radius: 4px; background: #4f46e5; cursor: pointer; transition: background .16s ease, border-color .16s ease, opacity .16s ease; }
+    .workspace button:hover:not(:disabled) { border-color: #ffffff26; background: #6366f1; }
+    .workspace button:disabled { cursor: not-allowed; opacity: .45; }
+    .workspace button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
     .composer-footer { display: flex; justify-content: space-between; padding: 8px 2px 0; color: #64748b; font-size: 10px; }
     .error-message { margin: 0 0 8px; color: #ffb4ab; font-size: 12px; }
     .success-message { margin: 0 0 8px; color: #7bd0ff; font-size: 12px; }
@@ -653,7 +532,7 @@ import { AdminUser, ChatConversation, ChatMessage, ChatService, ChatUserResult, 
       .profile-name-row { gap: 9px; }
       .profile-name-row .auth-field { min-width: 0; }
     }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+    @media (prefers-reduced-motion: reduce) { .workspace, .workspace *, .workspace *::before, .workspace *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
   `]
 })
 export class AppComponent implements AfterViewInit {
@@ -668,17 +547,6 @@ export class AppComponent implements AfterViewInit {
   readonly searchResults = signal<ChatUserResult[]>([]);
   readonly searchingUsers = signal(false);
     readonly adminOpen = signal(false);
-    readonly adminUsers = signal<AdminUser[]>([]);
-    readonly adminUsersLoading = signal(false);
-    readonly adminSearch = signal('');
-    readonly adminError = signal('');
-    readonly adminNotice = signal('');
-    readonly adminSavingUid = signal<string | null>(null);
-    readonly editingAdminUid = signal<string | null>(null);
-    readonly adminEditUsername = signal('');
-    readonly adminEditFirstName = signal('');
-    readonly adminEditLastName = signal('');
-    readonly adminEditBio = signal('');
     @ViewChildren('messageRow', { read: ElementRef }) private messageRows!: QueryList<ElementRef<HTMLElement>>;
     readonly currentUser = signal<User | null>(null);
     readonly profile = signal<UserProfile | null>(null);
@@ -712,7 +580,6 @@ export class AppComponent implements AfterViewInit {
     private mediaObserver: IntersectionObserver | null = null;
     private searchTimeout: ReturnType<typeof setTimeout> | null = null;
     private searchGeneration = 0;
-    private adminLoadGeneration = 0;
     @ViewChild('messageStream') private messageStream?: ElementRef<HTMLDivElement>;
 
     constructor() {
@@ -790,98 +657,17 @@ export class AppComponent implements AfterViewInit {
     openAdminPanel(): void {
       if (this.profile()?.role !== 'admin') return;
       this.adminOpen.set(true);
-      this.adminError.set('');
-      this.adminNotice.set('');
-      void this.loadAdminUsers();
     }
 
     closeAdminPanel(): void {
       this.adminOpen.set(false);
-      this.editingAdminUid.set(null);
     }
 
-    filteredAdminUsers(): AdminUser[] {
-      const search = this.adminSearch().trim().toLowerCase();
-      if (!search) return this.adminUsers();
-      return this.adminUsers().filter(user =>
-        [user.username, user.displayName, user.email].some(value => value?.toLowerCase().includes(search))
-      );
-    }
-
-    private async loadAdminUsers(): Promise<void> {
-      const generation = ++this.adminLoadGeneration;
-      this.adminUsersLoading.set(true);
-      try {
-        const users = await this.chat.listAdminUsers();
-        if (generation === this.adminLoadGeneration && this.profile()?.role === 'admin') {
-          this.adminUsers.set(users);
-        }
-      } catch (error: unknown) {
-        if (generation === this.adminLoadGeneration) {
-          this.adminError.set(error instanceof Error ? error.message : 'No se pudieron cargar los usuarios.');
-        }
-      } finally {
-        if (generation === this.adminLoadGeneration) this.adminUsersLoading.set(false);
-      }
-    }
-
-    toggleAdminEdit(user: AdminUser): void {
-      if (this.editingAdminUid() === user.uid) {
-        this.editingAdminUid.set(null);
-        return;
-      }
-      this.editingAdminUid.set(user.uid);
-      this.adminEditUsername.set(user.username ?? '');
-      this.adminEditFirstName.set(user.firstName ?? '');
-      this.adminEditLastName.set(user.lastName ?? '');
-      this.adminEditBio.set(user.bio ?? '');
-      this.adminError.set('');
-    }
-
-    async saveAdminProfile(event: Event, user: AdminUser): Promise<void> {
-      event.preventDefault();
-      await this.updateAdminUser(user, {
-        profile: {
-          username: this.adminEditUsername(),
-          firstName: this.adminEditFirstName(),
-          lastName: this.adminEditLastName(),
-          bio: this.adminEditBio()
-        }
-      }, 'Perfil actualizado.');
-      if (!this.adminError()) this.editingAdminUid.set(null);
-    }
-
-    async changeAdminRole(user: AdminUser, role: string): Promise<void> {
-      if (role !== 'user' && role !== 'admin') return;
-      await this.updateAdminUser(user, { role }, role === 'admin' ? 'Permiso de administrador concedido.' : 'Permiso de administrador retirado.');
-    }
-
-    async changeAdminActive(user: AdminUser, isActive: boolean): Promise<void> {
-      await this.updateAdminUser(user, { isActive }, isActive ? 'Cuenta activada.' : 'Cuenta bloqueada.');
-    }
-
-    private async updateAdminUser(
-      user: AdminUser,
-      changes: Parameters<ChatService['updateAdminUser']>[1],
-      notice: string
-    ): Promise<void> {
-      this.adminSavingUid.set(user.uid);
-      this.adminError.set('');
-      this.adminNotice.set('');
-      try {
-        const updated = await this.chat.updateAdminUser(user.uid, changes);
-        this.adminUsers.update(users => users.map(item => item.uid === updated.uid ? updated : item));
-        this.adminNotice.set(notice);
-        if (updated.uid === this.currentUser()?.uid) {
-          this.profile.update(profile => profile ? { ...profile, role: updated.role, isActive: updated.isActive } : profile);
-          if (updated.role !== 'admin' || !updated.isActive) this.closeAdminPanel();
-        }
-      } catch (error: unknown) {
-        this.adminError.set(error instanceof Error ? error.message : 'No se pudo actualizar el usuario.');
-        void this.loadAdminUsers();
-      } finally {
-        this.adminSavingUid.set(null);
-      }
+    onAdminProfileUpdated(user: AdminUser): void {
+      this.profile.update(profile => profile
+        ? { ...profile, role: user.role, isActive: user.isActive }
+        : profile);
+      if (user.role !== 'admin' || !user.isActive) this.closeAdminPanel();
     }
     isMine(message: ChatMessage): boolean {
         return message.senderId === this.currentUserId();
