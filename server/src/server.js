@@ -556,7 +556,7 @@ app.get('/api/messages', requireFirebaseAuth, withUser(async (request, response)
             WHERE m.conversation_id = $1
          ORDER BY m.created_at DESC, m.id DESC
          LIMIT 100`
-           , [conversationId]
+           , [conversationId, request.authUser.uid]
     );
     const lastFetchedMessageId = result.rows[0]?.id;
     if (lastFetchedMessageId) {
