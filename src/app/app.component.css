@@ -29,6 +29,11 @@
     .workspace .guest-direct-action:hover:not(:disabled) { border-color: #4f46e5; background: #202027; }
     .conversation-item { display: flex; align-items: center; gap: 11px; min-width: 0; padding: 11px 9px; color: inherit; border: 1px solid #343538; border-radius: 4px; background: #1a1b20; text-decoration: none; box-shadow: inset 0 1px #ffffff08; }
     .conversation-item-active { border-color: #4f46e5; background: #202027; }
+    .conversation-item-unread { border-color: #23536a; background: #14232a; box-shadow: inset 2px 0 #7bd0ff, inset 0 1px #ffffff08; }
+    .conversation-item-unread .conversation-title strong { color: #f8fafc; font-weight: 700; }
+    .conversation-item-unread .conversation-preview { color: #a7e3ff; font-weight: 600; }
+    .conversation-item-unread .conversation-title-meta { color: #7bd0ff; }
+    .conversation-unread-dot { width: 9px; height: 9px; flex: 0 0 auto; border: 1px solid #d8f3ff; border-radius: 50%; background: #7bd0ff; box-shadow: 0 0 10px #7bd0ff99; }
     .user-search { display: flex; align-items: center; gap: 8px; min-width: 0; height: 40px; margin: 0 0 8px; padding: 0 10px; color: #64748b; border: 1px solid #2c2e35; border-radius: 4px; background: #0a0a0c; }
     .user-search svg { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.6; }
     .user-search input { height: 36px; padding: 0; font-size: 11px; }

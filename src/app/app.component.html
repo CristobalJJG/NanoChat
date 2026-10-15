@@ -102,7 +102,7 @@
         }
         <div class="sidebar-section-label sidebar-section-conversations"><span>RECIENTES</span></div>
         @for (conversation of conversations(); track conversation.id) {
-          <a class="conversation-item" href="#conversation" [class.conversation-item-active]="conversation.id === selectedConversationId()" [attr.aria-current]="conversation.id === selectedConversationId() ? 'page' : null" (click)="selectConversation(conversation)">
+          <a class="conversation-item" href="#conversation" [class.conversation-item-active]="conversation.id === selectedConversationId()" [class.conversation-item-unread]="conversation.unreadCount > 0 && conversation.id !== selectedConversationId()" [attr.aria-current]="conversation.id === selectedConversationId() ? 'page' : null" (click)="selectConversation(conversation)">
             @if (conversation.photoURL) {
               <img class="conversation-avatar" [src]="conversation.photoURL" [alt]="''" />
             } @else {
@@ -126,6 +126,8 @@
             </span>
             @if (conversation.kind === 'general') {
               <span class="conversation-live" aria-label="Canal general"></span>
+            } @else if (conversation.unreadCount > 0 && conversation.id !== selectedConversationId()) {
+              <span class="conversation-unread-dot" aria-hidden="true"></span>
             }
           </a>
         }
