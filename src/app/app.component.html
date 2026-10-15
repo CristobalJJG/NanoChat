@@ -223,7 +223,7 @@
                     }
                   </div>
                 }
-                @if (activeConversation().kind === 'direct' && showReadReceipt(message)) {
+                @if (activeConversation().kind === 'direct' && isMine(message) && message.readAt) {
                   <span class="message-read-receipt" aria-label="Leído por el destinatario">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 12 4 4L17 6M10 14l3 3L22 8" /></svg>
                     Visto

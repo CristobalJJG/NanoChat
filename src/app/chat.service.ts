@@ -20,7 +20,7 @@ export interface ChatMessage {
     senderId: string;
     text: string;
     createdAt: string;
-    readByRecipient?: boolean;
+    readAt?: string | null;
     senderName?: string;
     senderPhotoURL?: string | null;
     attachments?: MediaAttachment[];

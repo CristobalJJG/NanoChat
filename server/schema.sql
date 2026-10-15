@@ -157,6 +157,9 @@ CREATE TABLE IF NOT EXISTS conversation_read_states (
     PRIMARY KEY (conversation_id, user_uid)
 );
 
+ALTER TABLE messages
+    ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+
 INSERT INTO conversation_read_states (conversation_id, user_uid, last_read_message_id)
 SELECT c.id, participant.user_uid, latest.id
 FROM conversations c
@@ -172,6 +175,19 @@ JOIN LATERAL (
 ) latest ON TRUE
 WHERE c.kind = 'direct'
 ON CONFLICT (conversation_id, user_uid) DO NOTHING;
+
+UPDATE messages message
+SET read_at = read_message.created_at
+FROM conversations conversation
+JOIN conversation_read_states read_state
+  ON read_state.conversation_id = conversation.id
+JOIN messages read_message
+  ON read_message.id = read_state.last_read_message_id
+WHERE message.conversation_id = conversation.id
+  AND conversation.kind = 'direct'
+  AND read_state.user_uid <> message.sender_uid
+  AND (message.created_at, message.id) <= (read_message.created_at, read_message.id)
+  AND message.read_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS media_owner_uid_idx ON media (owner_uid);
 

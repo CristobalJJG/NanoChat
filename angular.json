@@ -25,6 +25,7 @@
           "configurations": {
             "production": {
               "optimization": true,
+              "outputHashing": "all",
               "budgets": [
                 {
                   "type": "initial",

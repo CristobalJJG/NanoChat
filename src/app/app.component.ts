@@ -153,14 +153,6 @@ export class AppComponent implements AfterViewInit {
         return message.senderId === this.currentUserId();
     }
 
-    showReadReceipt(message: ChatMessage): boolean {
-      if (!message.readByRecipient || !this.isMine(message)) return false;
-      const lastReadMessage = [...this.messages()].reverse().find(item =>
-        item.senderId === this.currentUserId() && item.readByRecipient
-      );
-      return lastReadMessage?.id === message.id;
-    }
-
     activeConversation(): ChatConversation {
       return this.conversations().find(conversation => conversation.id === this.selectedConversationId())
           ?? { id: GENERAL_CONVERSATION_ID, kind: 'general', title: 'General', lastMessage: '', unreadCount: 0 };
