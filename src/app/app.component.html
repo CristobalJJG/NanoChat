@@ -1,0 +1,287 @@
+    <main class="workspace">
+      @if (authLoading()) {
+        <div class="auth-loading" role="status"><span class="status-dot status-dot-online"></span> Cargando sesión...</div>
+      } @else if (!currentUser() || accountFlow()) {
+        <section class="auth-screen" aria-labelledby="auth-title">
+          <app-auth-panel
+            [showBack]="!!currentUser()"
+            [hasUser]="!!currentUser()"
+            [authMode]="authMode()"
+            [authEmail]="authEmail()"
+            [authPassword]="authPassword()"
+            [authBusy]="authBusy()"
+            [authError]="authError()"
+            (authEmailChange)="authEmail.set($event)"
+            (authPasswordChange)="authPassword.set($event)"
+            (authSubmit)="submitAuth($event)"
+            (switchMode)="switchAuthMode()"
+            (continueAsGuest)="continueAsGuest()"
+            (close)="closeAccountFlow()"
+          />
+        </section>
+      } @else if (currentUser()?.isAnonymous === false && !profile()) {
+        <section class="auth-screen profile-screen" aria-labelledby="profile-title">
+          <app-auth-panel
+            [profileSetup]="true"
+            [profileUsername]="profileUsername()"
+            [profileFirstName]="profileFirstName()"
+            [profileLastName]="profileLastName()"
+            [profileAge]="profileAge()"
+            [profileBio]="profileBio()"
+            [profileError]="profileError()"
+            [profileBusy]="profileBusy()"
+            [photoPreview]="photoPreview()"
+            [photoFileName]="photoFile()?.name ?? null"
+            [userInitial]="userInitial()"
+            (profileUsernameChange)="profileUsername.set($event)"
+            (profileFirstNameChange)="profileFirstName.set($event)"
+            (profileLastNameChange)="profileLastName.set($event)"
+            (profileAgeChange)="profileAge.set($event)"
+            (profileBioChange)="profileBio.set($event)"
+            (profileSubmit)="submitProfile($event)"
+            (photoSelected)="selectProfilePhoto($event)"
+          />
+        </section>
+      } @else {
+      <aside class="utility-rail" aria-label="Navegación principal">
+        <a class="brand-link" href="#conversation" aria-label="Echo, ir al chat">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1WAQK8bUEtvgexkHFXyNxEmM0UarEUM1pbe5SDuYEJcKGHlzvBu5Goym3fpZi32TXFkNKEJDcJLCRpr9AH75YfUH0tCwmlXwMw6Xm18BsikXoazbb8VpB08GBmxDrQrGADuRqH0CIFakl90NIxjk7h8etQQ9pB4Ped2zy6rjLqFxEtiiPVldI8pcgG6pxbBxr1wfgxwJ8oDA03qIvuTlTleZByI7V1_HJy5pTDUgXo3fYLRdLtoTJ7r5bY" alt="" />
+        </a>
+        <nav class="rail-navigation" aria-label="Vistas">
+          <a class="rail-link rail-link-active" href="#conversation" aria-label="Chats" aria-current="page" title="Chats">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H5l-2 2v-7.5A7.5 7.5 0 1 1 20 11.5Z" /><path d="M8 11h.01M12 11h.01M16 11h.01" /></svg>
+          </a>
+        </nav>
+        <div class="rail-bottom"><span class="guest-avatar" [attr.aria-label]="currentUser()?.email ?? 'Sesión anónima'">{{ userInitial() }}</span></div>
+      </aside>
+
+      <aside class="conversation-sidebar" [class.mobile-conversations-open]="mobileConversationsOpen()" aria-label="Lista de conversaciones" [attr.role]="mobileConversationsOpen() ? 'dialog' : null" [attr.aria-modal]="mobileConversationsOpen() ? 'true' : null">
+        <header class="sidebar-header">
+          <div>
+            <p class="eyebrow">PULSE / ECHO</p>
+            <h2>Mensajes</h2>
+          </div>
+          <div class="sidebar-header-actions">
+            <span class="sidebar-count">{{ conversations().length }}</span>
+            <button class="mobile-close-conversations" type="button" aria-label="Cerrar conversaciones" (click)="mobileConversationsOpen.set(false)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+          </div>
+        </header>
+        <div class="sidebar-section-label"><span>CONVERSACIONES</span><span>{{ conversations().length }}</span></div>
+        <label class="user-search">
+          <span class="visually-hidden">Buscar usuarios</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3" /><path d="m15.5 15.5 4.2 4.2" /></svg>
+          <input type="search" placeholder="Buscar por username" autocomplete="off" [value]="userSearch()" (input)="onUserSearch($any($event.target).value)" />
+        </label>
+        @if (searchingUsers()) {
+          <p class="search-status">Buscando...</p>
+        } @else if (userSearch().trim().length >= 2 && searchResults().length === 0) {
+          <p class="search-status">No se encontraron usuarios.</p>
+        }
+        @if (searchResults().length) {
+          <div class="user-search-results" aria-label="Resultados de búsqueda">
+            @for (user of searchResults(); track user.username) {
+              <button class="user-result" type="button" (click)="startDirectConversation(user.username)">
+                @if (user.photoURL) {
+                  <img class="conversation-avatar" [src]="user.photoURL" [alt]="''" />
+                } @else {
+                  <span class="conversation-avatar" aria-hidden="true">{{ user.displayName.charAt(0).toUpperCase() }}</span>
+                }
+                <span class="conversation-copy"><strong>{{ user.displayName }}</strong><small>@{{ user.username }}</small></span>
+              </button>
+            }
+          </div>
+        }
+        <div class="sidebar-section-label sidebar-section-conversations"><span>RECIENTES</span></div>
+        @for (conversation of conversations(); track conversation.id) {
+          <a class="conversation-item" href="#conversation" [class.conversation-item-active]="conversation.id === selectedConversationId()" [attr.aria-current]="conversation.id === selectedConversationId() ? 'page' : null" (click)="selectConversation(conversation)">
+            @if (conversation.photoURL) {
+              <img class="conversation-avatar" [src]="conversation.photoURL" [alt]="''" />
+            } @else {
+              <span class="conversation-avatar" aria-hidden="true">{{ conversation.title.charAt(0).toUpperCase() }}</span>
+            }
+            <span class="conversation-copy">
+              <span class="conversation-title"><strong>{{ conversation.title }}</strong><span>{{ conversation.kind === 'direct' ? '@' + conversation.username : messages().length }}</span></span>
+              <span class="conversation-preview">{{ conversation.lastMessage || (conversation.kind === 'general' ? 'La conversación comienza aquí' : 'Inicia la conversación') }}</span>
+            </span>
+            @if (conversation.kind === 'general') {
+              <span class="conversation-live" aria-label="Canal general"></span>
+            }
+          </a>
+        }
+        <div class="sidebar-bottom">
+          <span class="live-indicator"></span>
+          <span>{{ connecting() ? 'Conectando' : error() ? 'Sin conexión' : 'En línea' }}</span>
+        </div>
+      </aside>
+      @if (mobileConversationsOpen()) {
+        <button class="mobile-conversations-backdrop" type="button" aria-label="Cerrar conversaciones" (click)="mobileConversationsOpen.set(false)"></button>
+      }
+
+      <section id="conversation" class="thread" [attr.aria-label]="'Conversación con ' + activeConversation().title">
+        <header class="thread-header">
+          <button class="mobile-chats-action" type="button" aria-label="Abrir conversaciones" title="Abrir conversaciones" (click)="mobileConversationsOpen.set(true)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H5l-2 2v-7.5A7.5 7.5 0 1 1 20 11.5Z" /><path d="M8 11h.01M12 11h.01M16 11h.01" /></svg>
+          </button>
+          <div class="thread-heading">
+            <span class="thread-avatar" aria-hidden="true">{{ activeConversation().title.charAt(0).toUpperCase() }}</span>
+            <div>
+              <p class="eyebrow">{{ activeConversation().kind === 'general' ? 'CONVERSACIÓN GLOBAL' : '@' + activeConversation().username }}</p>
+              <h1>{{ activeConversation().title }}</h1>
+            </div>
+          </div>
+          <div class="thread-status">
+            <span class="status-dot" [class.status-dot-online]="!connecting() && !error()"></span>
+            <span>{{ connecting() ? 'Conectando' : error() ? 'Sin conexión' : 'En vivo' }}</span>
+          </div>
+          <div class="thread-count"><span>{{ messages().length }}</span> MENSAJES</div>
+          @if (profile()?.role === 'admin') {
+            <button class="admin-open-action" type="button" (click)="openAdminPanel()" aria-label="Administrar usuarios" title="Administrar usuarios">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3Z" /><path d="m9 12 2 2 4-4" /></svg>
+              <span>Admin</span>
+            </button>
+          }
+          <button class="session-action" type="button" (click)="handleSessionAction()" [disabled]="authBusy()" [attr.aria-label]="currentUser()?.isAnonymous ? 'Crear cuenta' : 'Cerrar sesión'" [title]="currentUser()?.isAnonymous ? 'Crear cuenta' : 'Cerrar sesión'">
+            @if (currentUser()?.isAnonymous) {
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M22 11h-6" /></svg>
+              <span>Crear cuenta</span>
+            } @else {
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M21 3v18" /></svg>
+              <span>Salir</span>
+            }
+          </button>
+        </header>
+
+        <div #messageStream class="message-stream" aria-live="polite" aria-relevant="additions text">
+          @if (messages().length === 0 && !connecting()) {
+            <div class="empty-state">
+              <span class="empty-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 12h3l2-6 4 12 2-6h5" /></svg>
+              </span>
+              <p>Sin mensajes todavía</p>
+              <span>El canal está abierto.</span>
+            </div>
+          }
+          @for (message of messages(); track message.id) {
+            <article #messageRow class="message-row" [attr.data-message-id]="message.id" [class.message-row-mine]="isMine(message)">
+              <div class="message-content">
+                <div class="message-meta">
+                  @if (message.senderPhotoURL) {
+                    <img class="message-avatar" [src]="message.senderPhotoURL" [alt]="'Foto de ' + (message.senderName ?? 'usuario')" />
+                  } @else {
+                    <span class="message-avatar-placeholder" aria-hidden="true">{{ (message.senderName ?? 'I').charAt(0).toUpperCase() }}</span>
+                  }
+                  <span>{{ isMine(message) ? 'Tú' : message.senderName ?? 'Invitado' }}</span>
+                  <time>{{ message.createdAt | date:'HH:mm' }}</time>
+                </div>
+                @if (message.text) {
+                  <p class="message-bubble">{{ message.text }}</p>
+                }
+                @if (message.attachments?.length) {
+                  <div class="message-attachments">
+                    @for (attachment of message.attachments; track attachment.id) {
+                      @if (attachment.contentType.startsWith('image/')) {
+                        @if (attachmentUrls()[attachment.id]; as mediaUrl) {
+                          <img class="message-image" [src]="mediaUrl" [alt]="attachment.fileName" loading="lazy" />
+                        } @else {
+                          <span class="media-loading">Cargando {{ attachment.fileName }}...</span>
+                        }
+                      } @else if (attachment.contentType.startsWith('audio/')) {
+                        <div class="message-audio">
+                          <span>{{ attachment.fileName }}</span>
+                          @if (attachmentUrls()[attachment.id]; as mediaUrl) {
+                            <audio controls preload="metadata">
+                              <source [src]="mediaUrl" [type]="attachment.contentType" />
+                            </audio>
+                          } @else {
+                            <span class="media-loading">Cargando audio...</span>
+                          }
+                        </div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            </article>
+          }
+        </div>
+
+        <form class="composer" (submit)="sendMessage($event)">
+          @if (error()) {
+            <p class="error-message" role="alert">{{ error() }}</p>
+          }
+          @if (saved()) {
+            <p class="success-message" role="status">Mensaje guardado en PostgreSQL.</p>
+          }
+          @if (mediaFiles().length) {
+            <div class="attachment-picks" aria-label="Archivos adjuntos seleccionados">
+              @for (file of mediaFiles(); track $index) {
+                <div class="attachment-pick">
+                  <span>{{ file.name }}</span>
+                  <button class="remove-attachment" type="button" [attr.aria-label]="'Quitar ' + file.name" (click)="removeMedia($index)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+          <div class="composer-row">
+            <label class="composer-attach" title="Adjuntar imagen o audio">
+              <input class="attachment-input" type="file" accept="image/jpeg,image/png,image/webp,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm" multiple aria-label="Adjuntar imágenes o audios" [disabled]="sending() || connecting()" (change)="selectMedia($event)" />
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            </label>
+            <input
+              aria-label="Escribe un mensaje"
+              autocomplete="off"
+              maxlength="1000"
+              name="message"
+              placeholder="Escribe un mensaje..."
+              [value]="draft()"
+              (input)="onDraftInput($any($event.target).value)"
+            />
+            <button type="submit" aria-label="Enviar mensaje" title="Enviar mensaje" [disabled]="(!draft().trim() && !mediaFiles().length) || sending() || connecting()">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 16 8-16 8 3-8-3-8Zm3 8h13" /></svg>
+            </button>
+          </div>
+          <div class="composer-footer"><span>{{ sending() ? 'Guardando...' : saved() ? 'Guardado en PostgreSQL' : 'Sesión anónima' }}</span><span>{{ draft().length }}/1000</span></div>
+        </form>
+      </section>
+
+      @if (adminOpen()) {
+        <app-admin-panel
+          [currentUserId]="currentUser()?.uid ?? null"
+          (close)="closeAdminPanel()"
+          (profileUpdated)="onAdminProfileUpdated($event)"
+        />
+      }
+
+      <aside class="details-panel" aria-label="Detalles de la conversación">
+        <header class="details-header"><p class="eyebrow">PANEL DE CONTEXTO</p><h2>Detalles</h2></header>
+        <div class="details-room">
+          <span class="details-avatar" aria-hidden="true">G</span>
+          <h3>Chat general</h3>
+          <p>Conversación compartida</p>
+        </div>
+        <section class="details-section">
+          <p class="eyebrow">ESTADO</p>
+          <div class="details-status"><span class="status-dot" [class.status-dot-online]="!connecting() && !error()"></span>{{ connecting() ? 'Conectando' : error() ? 'Sin conexión' : 'Conectado' }}</div>
+        </section>
+        <section class="details-section">
+          <p class="eyebrow">IDENTIDAD</p>
+          <div class="identity-row">
+            @if (profile()?.photoURL) {
+              <img class="identity-photo" [src]="profile()?.photoURL" alt="Foto de perfil" />
+            } @else {
+              <span class="guest-avatar">{{ userInitial() }}</span>
+            }
+            <span><strong>{{ profile()?.displayName ?? currentUser()?.email ?? 'Invitado' }}</strong><small>{{ profile() ? '@' + profile()?.username + ' · ' + profile()?.age + ' años' : 'Sesión anónima' }}</small></span>
+          </div>
+          @if (profile()?.bio) {
+            <p class="profile-bio">{{ profile()?.bio }}</p>
+          }
+        </section>
+        <div class="details-footer"><span class="footer-mark">E</span><span>Pulse / Echo</span></div>
+      </aside>
+      }
+    </main>
