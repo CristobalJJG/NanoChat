@@ -1,59 +1,52 @@
 # ChatApp
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.2.
+Chat en Angular con autenticación Firebase y almacenamiento propio en PostgreSQL. Firebase se usa solo para iniciar sesión y emitir ID tokens; la API Node los valida antes de acceder a los datos locales.
 
-## Development server
+## Autenticación Firebase
 
-To start a local development server, run:
+En Firebase Console, activa **Authentication > Sign-in method > Email/Password**. Activa también **Anonymous** si quieres permitir el acceso como invitado. Firebase se utiliza únicamente para autenticación; perfiles, mensajes y archivos se almacenan en PostgreSQL.
 
-```bash
-ng serve
-```
+La pantalla inicial permite crear una cuenta, iniciar sesión o continuar como invitado. Después del registro, el perfil requiere username único, nombres, apellidos, edad y una foto JPG, PNG o WebP de hasta 5 MB; la biografía es opcional. Si un invitado se registra desde el chat, Firebase enlaza el correo y la contraseña a su sesión anónima actual para conservar su UID y sus mensajes. La edad y los datos completos del perfil solo son legibles por su propietario; el nombre y la foto se comparten en los mensajes. Al cerrar sesión, podrá volver a entrar con sus credenciales.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Iniciar con Docker
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+1. Asegúrate de tener Docker Desktop iniciado.
+2. Configura las claves web de Firebase en `.env` (consulta `.env.example`).
+3. En Firebase Console, activa **Authentication > Sign-in method > Email/Password**. Activa **Anonymous** si quieres permitir invitados.
+4. Ejecuta:
 
 ```bash
-ng generate --help
+docker compose up --build
 ```
 
-## Building
+Abre `http://localhost:8080`. La API está en `http://localhost:3000/api` y PostgreSQL está disponible en el puerto configurado con `POSTGRES_PORT` (5432 en `.env.example`).
 
-To build the project run:
+Los mensajes, perfiles y adjuntos se guardan en PostgreSQL. Los archivos se almacenan como `BYTEA` en la tabla `media`; se aceptan imágenes, audio, vídeo y PDF de hasta 25 MB. Las fotos de perfil se limitan a 5 MB. El username tiene índice único. La edad y los datos completos del perfil solo se devuelven al propietario; nombre y foto se incluyen en los mensajes.
+
+Los datos sobreviven a reinicios en el volumen `postgres_data`. `docker compose down` conserva ese volumen. No uses las credenciales por defecto fuera de desarrollo local; puedes cambiarlas con `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`, `API_PORT` y `WEB_PORT` en `.env`.
+
+## Desarrollo local
+
+Con Docker Desktop iniciado, arranca PostgreSQL:
 
 ```bash
-ng build
+docker compose up -d postgres
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+En una terminal ejecuta la API y en otra Angular:
 
 ```bash
-ng test
+npm --prefix server run dev
+npm start
 ```
 
-## Running end-to-end tests
+El proxy de Angular envía `/api` a `localhost:3000`. La API carga `.env` desde la raíz del repositorio.
 
-For end-to-end (e2e) testing, run:
+## Datos y arquitectura
 
-```bash
-ng e2e
-```
+- `server/schema.sql`: tablas e índices PostgreSQL. La API aplica el esquema al iniciar.
+- `server/src/auth.js`: valida firma, emisor y audiencia de los tokens Firebase.
+- `server/src/server.js`: API autenticada para perfiles, mensajes y archivos.
+- `firestore` y Firebase Storage no se usan para guardar datos de la aplicación.
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+El registro desde una sesión invitada enlaza el correo/contraseña a la misma identidad Firebase. Después se solicita username, nombres, apellidos, edad, foto y biografía opcional.
