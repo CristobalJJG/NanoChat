@@ -522,6 +522,13 @@ app.get('/api/messages', requireFirebaseAuth, withUser(async (request, response)
 
     const result = await pool.query(
         `SELECT m.id, m.sender_uid, m.text, m.created_at,
+                COALESCE(
+                    c.kind = 'direct'
+                    AND m.sender_uid = $2
+                    AND peer_read_message.id IS NOT NULL
+                    AND (m.created_at, m.id) <= (peer_read_message.created_at, peer_read_message.id),
+                    FALSE
+                ) AS read_by_recipient,
                 COALESCE(u.display_name, 'Invitado') AS sender_name,
                 u.photo_media_id,
                 COALESCE((
@@ -537,20 +544,29 @@ app.get('/api/messages', requireFirebaseAuth, withUser(async (request, response)
                 ), '[]'::json) AS attachments
          FROM messages m
          JOIN app_users u ON u.firebase_uid = m.sender_uid
+         JOIN conversations c ON c.id = m.conversation_id
+         LEFT JOIN conversation_read_states peer_read
+           ON peer_read.conversation_id = c.id
+          AND peer_read.user_uid = CASE
+              WHEN c.participant_one_uid = $2 THEN c.participant_two_uid
+              ELSE c.participant_one_uid
+          END
+         LEFT JOIN messages peer_read_message
+           ON peer_read_message.id = peer_read.last_read_message_id
             WHERE m.conversation_id = $1
          ORDER BY m.created_at DESC, m.id DESC
          LIMIT 100`
            , [conversationId]
     );
-    if (result.rowCount) {
+    const lastFetchedMessageId = result.rows[0]?.id;
+    if (lastFetchedMessageId) {
         await pool.query(
             `INSERT INTO conversation_read_states (conversation_id, user_uid, last_read_message_id)
-             SELECT $1, $2, m.id
-             FROM messages m
-             JOIN conversations c ON c.id = m.conversation_id AND c.kind = 'direct'
-             WHERE m.conversation_id = $1
-             ORDER BY m.created_at DESC, m.id DESC
-             LIMIT 1
+             SELECT $1, $2, $3
+             WHERE EXISTS (
+                 SELECT 1 FROM conversations
+                 WHERE id = $1 AND kind = 'direct'
+             )
              ON CONFLICT (conversation_id, user_uid) DO UPDATE
              SET last_read_message_id = EXCLUDED.last_read_message_id
              WHERE conversation_read_states.last_read_message_id IS NULL
@@ -563,7 +579,7 @@ app.get('/api/messages', requireFirebaseAuth, withUser(async (request, response)
                       AND (new_message.created_at, new_message.id)
                           > (old_message.created_at, old_message.id)
                 )`,
-            [conversationId, request.authUser.uid]
+            [conversationId, request.authUser.uid, lastFetchedMessageId]
         );
     }
     response.json(result.rows.reverse().map(row => ({
@@ -573,6 +589,7 @@ app.get('/api/messages', requireFirebaseAuth, withUser(async (request, response)
         senderPhotoURL: row.photo_media_id ? `/api/media/${row.photo_media_id}` : null,
         text: row.text,
         createdAt: row.created_at,
+        readByRecipient: row.read_by_recipient,
         attachments: row.attachments
     })));
 }));
