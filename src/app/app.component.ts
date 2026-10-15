@@ -53,6 +53,7 @@ export class AppComponent implements AfterViewInit {
     readonly photoFile = signal<File | null>(null);
     readonly photoPreview = signal('');
     private profileLoadGeneration = 0;
+    private conversationRefreshGeneration = 0;
     private lastMessageId: string | null = null;
     private readonly requestedAttachments = new Set<string>();
     private destroyed = false;
@@ -223,16 +224,17 @@ export class AppComponent implements AfterViewInit {
     }
 
     private async refreshConversations(uid: string): Promise<void> {
+      const generation = ++this.conversationRefreshGeneration;
       try {
         const conversations = await this.chat.listConversations();
-        if (this.currentUser()?.uid !== uid) return;
+        if (this.currentUser()?.uid !== uid || generation !== this.conversationRefreshGeneration) return;
         this.conversations.set(conversations);
         if (!conversations.some(conversation => conversation.id === this.selectedConversationId())) {
           const general = conversations.find(conversation => conversation.kind === 'general');
           if (general) this.selectConversation(general);
         }
       } catch (error: unknown) {
-        if (this.currentUser()?.uid === uid) {
+        if (this.currentUser()?.uid === uid && generation === this.conversationRefreshGeneration) {
           this.error.set(error instanceof Error ? error.message : 'No se pudieron cargar las conversaciones.');
         }
       }
@@ -481,11 +483,28 @@ export class AppComponent implements AfterViewInit {
             const user = await this.chat.ensureAnonymousUser();
             this.currentUserId.set(user.uid);
         const uploadedMedia = await Promise.all(files.map(file => this.chat.uploadMedia(file)));
-            await this.chat.sendMessage(text, user.uid, this.profile(), uploadedMedia.map(media => media.id), this.selectedConversationId());
+            const conversationId = this.selectedConversationId();
+            const sentMessage = await this.chat.sendMessage(
+              text, user.uid, this.profile(), uploadedMedia.map(media => media.id), conversationId
+            );
             this.draft.set('');
         this.mediaFiles.set([]);
             this.saved.set(true);
             this.scrollToBottom();
+            this.conversations.update(conversations => {
+              const updated = conversations.map(conversation => conversation.id === conversationId
+                ? {
+                    ...conversation,
+                    lastMessage: sentMessage.text || (uploadedMedia.length === 1 ? 'Archivo adjunto' : 'Archivos adjuntos'),
+                    lastMessageAt: sentMessage.createdAt
+                  }
+                : conversation);
+              return updated.sort((first, second) => {
+                if (first.kind === 'general') return second.kind === 'general' ? 0 : -1;
+                if (second.kind === 'general') return 1;
+                return Date.parse(second.lastMessageAt ?? '') - Date.parse(first.lastMessageAt ?? '');
+              });
+            });
             void this.refreshConversations(user.uid);
         } catch (error: unknown) {
           this.error.set(this.firebaseErrorMessage(error, 'message'));

@@ -294,7 +294,7 @@ export class ChatService {
         _profile: UserProfile | null = null,
         mediaIds: string[] = [],
         conversationId = GENERAL_CONVERSATION_ID
-    ): Promise<void> {
+    ): Promise<ChatMessage> {
         const normalizedText = text.trim();
         if (this.auth.currentUser?.uid !== senderId) throw new Error('La sesión ya no corresponde a este usuario.');
         if (normalizedText.length > 1000 || (!normalizedText && !mediaIds.length)) {
@@ -302,7 +302,7 @@ export class ChatService {
         }
 
         try {
-            await firstValueFrom(this.http.post('/api/messages', {
+            return await firstValueFrom(this.http.post<ChatMessage>('/api/messages', {
                 text: normalizedText,
                 mediaIds,
                 conversationId
