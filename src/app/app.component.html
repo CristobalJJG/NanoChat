@@ -44,8 +44,8 @@
         </section>
       } @else {
       <aside class="utility-rail" aria-label="Navegación principal">
-        <a class="brand-link" href="#conversation" aria-label="Echo, ir al chat">
-          <img src="https://lh3.googleusercontent.com/aida/AEtjO1WAQK8bUEtvgexkHFXyNxEmM0UarEUM1pbe5SDuYEJcKGHlzvBu5Goym3fpZi32TXFkNKEJDcJLCRpr9AH75YfUH0tCwmlXwMw6Xm18BsikXoazbb8VpB08GBmxDrQrGADuRqH0CIFakl90NIxjk7h8etQQ9pB4Ped2zy6rjLqFxEtiiPVldI8pcgG6pxbBxr1wfgxwJ8oDA03qIvuTlTleZByI7V1_HJy5pTDUgXo3fYLRdLtoTJ7r5bY" alt="" />
+        <a class="brand-link" href="#conversation" aria-label="Nano, ir al chat">
+          <span class="brand-monogram" aria-hidden="true">N</span>
         </a>
         <nav class="rail-navigation" aria-label="Vistas">
           <a class="rail-link rail-link-active" href="#conversation" aria-label="Chats" aria-current="page" title="Chats">
@@ -58,7 +58,7 @@
       <aside class="conversation-sidebar" [class.mobile-conversations-open]="mobileConversationsOpen()" aria-label="Lista de conversaciones" [attr.role]="mobileConversationsOpen() ? 'dialog' : null" [attr.aria-modal]="mobileConversationsOpen() ? 'true' : null">
         <header class="sidebar-header">
           <div>
-            <p class="eyebrow">PULSE / ECHO</p>
+            <p class="eyebrow">NANO CHAT</p>
             <h2>Mensajes</h2>
           </div>
           <div class="sidebar-header-actions">
@@ -308,7 +308,7 @@
             <p class="profile-bio">{{ profile()?.bio }}</p>
           }
         </section>
-        <div class="details-footer"><span class="footer-mark">E</span><span>Pulse / Echo</span></div>
+        <div class="details-footer"><span class="footer-mark">N</span><span>Nano</span></div>
       </aside>
       }
     </main>

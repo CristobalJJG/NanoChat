@@ -1,7 +1,7 @@
 # Guía de Desarrollo
 
 ## Objetivo
-Aplicación de chat Angular con estética Pulse / Echo de Stitch. Firebase se usa exclusivamente para autenticación; perfiles, mensajes y archivos viven en PostgreSQL local.
+Aplicación de chat Angular Nano con estética Pulse de Stitch. Firebase se usa exclusivamente para autenticación; perfiles, mensajes y archivos viven en PostgreSQL local.
 
 ## Stack
 - **Frontend:** Angular standalone, Signals y Tailwind CSS.

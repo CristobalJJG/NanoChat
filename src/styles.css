@@ -3,16 +3,16 @@
 @theme {
     --font-geist: "Geist", sans-serif;
     --font-space: "Space Grotesk", sans-serif;
-    --color-echo-canvas: #0a0a0c;
-    --color-echo-surface: #121316;
-    --color-echo-surface-high: #1a1b20;
-    --color-echo-surface-float: #22252b;
-    --color-echo-border: #2c2e35;
-    --color-echo-foreground: #f8fafc;
-    --color-echo-muted: #94a3b8;
-    --color-echo-placeholder: #475569;
-    --color-echo-indigo: #4f46e5;
-    --color-echo-cyan: #38bdf8;
+    --color-nano-canvas: #0a0a0c;
+    --color-nano-surface: #121316;
+    --color-nano-surface-high: #1a1b20;
+    --color-nano-surface-float: #22252b;
+    --color-nano-border: #2c2e35;
+    --color-nano-foreground: #f8fafc;
+    --color-nano-muted: #94a3b8;
+    --color-nano-placeholder: #475569;
+    --color-nano-indigo: #4f46e5;
+    --color-nano-cyan: #38bdf8;
 }
 
 * {
@@ -24,7 +24,7 @@ body {
     margin: 0;
 }
 body {
-    background: var(--color-echo-canvas);
-    color: var(--color-echo-foreground);
+    background: var(--color-nano-canvas);
+    color: var(--color-nano-foreground);
     font-family: var(--font-geist);
 }

@@ -1,4 +1,4 @@
-# ChatApp
+# Nano Chat
 
 Chat en Angular con autenticación Firebase y almacenamiento propio en PostgreSQL. Firebase se usa solo para iniciar sesión y emitir ID tokens; la API Node los valida antes de acceder a los datos locales.
 

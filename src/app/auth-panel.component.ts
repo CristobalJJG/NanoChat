@@ -12,9 +12,9 @@ import { Component, input, output } from '@angular/core';
             Volver al chat
           </button>
         }
-        <a class="auth-brand" href="#conversation" aria-label="Echo">
-          <img src="https://lh3.googleusercontent.com/aida/AEtjO1WAQK8bUEtvgexkHFXyNxEmM0UarEUM1pbe5SDuYEJcKGHlzvBu5Goym3fpZi32TXFkNKEJDcJLCRpr9AH75YfUH0tCwmlXwMw6Xm18BsikXoazbb8VpB08GBmxDrQrGADuRqH0CIFakl90NIxjk7h8etQQ9pB4Ped2zy6rjLqFxEtiiPVldI8pcgG6pxbBxr1wfgxwJ8oDA03qIvuTlTleZByI7V1_HJy5pTDUgXo3fYLRdLtoTJ7r5bY" alt="" />
-          <span>PULSE / ECHO</span>
+        <a class="auth-brand" href="#conversation" aria-label="Nano">
+          <span class="auth-brand-mark" aria-hidden="true">N</span>
+          <span>NANO CHAT</span>
         </a>
 
         @if (profileSetup()) {

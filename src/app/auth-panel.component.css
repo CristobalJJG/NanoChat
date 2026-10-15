@@ -24,10 +24,17 @@
     text-decoration: none;
 }
 
-.auth-brand img {
+.auth-brand-mark {
     width: 30px;
     height: 30px;
-    object-fit: contain;
+    display: grid;
+    place-items: center;
+    color: #c3c0ff;
+    border: 1px solid #33315e;
+    border-radius: 4px;
+    background: #1a1b20;
+    font-size: 18px;
+    font-weight: 700;
 }
 
 .auth-panel > .eyebrow {
