@@ -23,7 +23,7 @@ Abre `http://localhost:9001`. La API está en `http://localhost:3000/api` y Post
 
 Los mensajes, perfiles y adjuntos se guardan en PostgreSQL. Los archivos se almacenan como `BYTEA` en la tabla `media`; se aceptan imágenes, audio, vídeo y PDF de hasta 25 MB. Las fotos de perfil se limitan a 5 MB. El username tiene índice único. La edad y los datos completos del perfil solo se devuelven al propietario; nombre y foto se incluyen en los mensajes.
 
-Los datos sobreviven a reinicios en el volumen `postgres_data`. `docker compose down` conserva ese volumen. No uses las credenciales por defecto fuera de desarrollo local; puedes cambiarlas con `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`, `API_PORT` y `WEB_PORT` en `.env`.
+Los datos de PostgreSQL sobreviven a reinicios en `/home/nano/psql` en el host; `docker compose down` no elimina ese directorio. Asegúrate de que Docker tenga permisos para escribir en él. No uses las credenciales por defecto fuera de desarrollo local; puedes cambiarlas con `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`, `API_PORT` y `WEB_PORT` en `.env`.
 
 ## Desarrollo local
 
