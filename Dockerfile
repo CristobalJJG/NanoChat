@@ -19,6 +19,8 @@ ENV NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID
 RUN npm run build
 
 FROM nginx:1.29-alpine AS runtime
+LABEL org.opencontainers.image.title="NanoChat Web" \
+      org.opencontainers.image.version="1.0.0"
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/chat-app/browser /usr/share/nginx/html
 EXPOSE 80

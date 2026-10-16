@@ -19,7 +19,7 @@ La pantalla inicial permite crear una cuenta, iniciar sesión o continuar como i
 docker compose up --build
 ```
 
-Abre `http://localhost:8080`. La API está en `http://localhost:3000/api` y PostgreSQL está disponible en el puerto configurado con `POSTGRES_PORT` (5432 en `.env.example`).
+Abre `http://localhost:9001`. La API está en `http://localhost:3000/api` y PostgreSQL está disponible en el puerto configurado con `POSTGRES_PORT` (5432 en `.env.example`).
 
 Los mensajes, perfiles y adjuntos se guardan en PostgreSQL. Los archivos se almacenan como `BYTEA` en la tabla `media`; se aceptan imágenes, audio, vídeo y PDF de hasta 25 MB. Las fotos de perfil se limitan a 5 MB. El username tiene índice único. La edad y los datos completos del perfil solo se devuelven al propietario; nombre y foto se incluyen en los mensajes.
 
